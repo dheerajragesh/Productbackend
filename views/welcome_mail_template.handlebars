@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome to BookStore</title>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      background:#f4f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      padding:40px 15px;
+      color:#1f2937;
+    }
+
+    .wrapper{
+      max-width:650px;
+      margin:auto;
+    }
+
+    .card{
+      background:#ffffff;
+      border-radius:20px;
+      overflow:hidden;
+      box-shadow:0 10px 35px rgba(0,0,0,0.08);
+    }
+
+    /* HERO */
+    .hero{
+      background:linear-gradient(135deg,#1e293b,#0f172a);
+      padding:50px 40px;
+      text-align:center;
+      position:relative;
+    }
+
+    .logo-wrapper{
+      display:flex;
+      justify-content:center;
+      margin-bottom:25px;
+    }
+
+    .logo{
+      width:160px;
+      max-width:100%;
+      object-fit:contain;
+      background:white;
+      padding:12px;
+      border-radius:18px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.15);
+    }
+
+    .hero h1{
+      color:#ffffff;
+      font-size:34px;
+      margin-bottom:12px;
+    }
+
+    .hero p{
+      color:#d1d5db;
+      font-size:16px;
+      line-height:1.7;
+    }
+
+    /* BODY */
+    .content{
+      padding:45px 40px;
+    }
+
+    .welcome{
+      font-size:26px;
+      color:#111827;
+      margin-bottom:18px;
+    }
+
+    .highlight{
+      color:#c57a45;
+      font-weight:bold;
+    }
+
+    .text{
+      font-size:16px;
+      line-height:1.8;
+      color:#4b5563;
+      margin-bottom:22px;
+    }
+
+    .info-box{
+      background:#f9fafb;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:20px;
+      margin:25px 0;
+    }
+
+    .info-row{
+      display:flex;
+      justify-content:space-between;
+      padding:10px 0;
+      border-bottom:1px solid #e5e7eb;
+      font-size:15px;
+    }
+
+    .info-row:last-child{
+      border-bottom:none;
+    }
+
+    .label{
+      color:#6b7280;
+    }
+
+    .value{
+      color:#111827;
+      font-weight:600;
+    }
+
+    /* BUTTON */
+    .btn-wrapper{
+      text-align:center;
+      margin-top:35px;
+    }
+
+    .button{
+      display:inline-block;
+      background:linear-gradient(135deg,#c57a45,#e89a63);
+      color:#ffffff !important;
+      text-decoration:none;
+      padding:15px 35px;
+      border-radius:50px;
+      font-size:16px;
+      font-weight:bold;
+      box-shadow:0 8px 20px rgba(197,122,69,0.3);
+      transition:0.3s ease;
+    }
+
+    /* FEATURES */
+    .features{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:15px;
+      margin-top:40px;
+    }
+
+    .feature{
+      background:#f9fafb;
+      border-radius:14px;
+      padding:20px;
+      text-align:center;
+      border:1px solid #eef2f7;
+    }
+
+    .feature-icon{
+      font-size:28px;
+      margin-bottom:10px;
+    }
+
+    .feature h4{
+      font-size:15px;
+      margin-bottom:8px;
+      color:#111827;
+    }
+
+    .feature p{
+      font-size:13px;
+      color:#6b7280;
+      line-height:1.6;
+    }
+
+    /* FOOTER */
+    .footer{
+      padding:30px 40px;
+      text-align:center;
+      background:#f9fafb;
+      border-top:1px solid #e5e7eb;
+    }
+
+    .footer p{
+      font-size:13px;
+      color:#6b7280;
+      line-height:1.8;
+    }
+
+    .socials{
+      margin-top:18px;
+    }
+
+    .socials a{
+      text-decoration:none;
+      margin:0 8px;
+      font-size:14px;
+      color:#c57a45;
+      font-weight:bold;
+    }
+
+    @media(max-width:600px){
+
+      .hero,
+      .content,
+      .footer{
+        padding:30px 20px;
+      }
+
+      .hero h1{
+        font-size:28px;
+      }
+
+      .features{
+        grid-template-columns:1fr;
+      }
+
+      .info-row{
+        flex-direction:column;
+        gap:5px;
+      }
+
+      .logo{
+        width:120px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+    <div class="card">
+
+      <!-- HERO -->
+      <div class="hero">
+
+        <div class="logo-wrapper">
+          <img
+            src="cid:bookstorelogo"
+            alt="BookStore Logo"
+            class="logo"
+          />
+        </div>
+
+        <h1>Welcome to BookStore</h1>
+
+        <p>
+          Your next reading adventure starts here.
+          Discover books, build your wishlist,
+          and experience seamless online shopping.
+        </p>
+
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content">
+
+        <div class="welcome">
+          Hey <span class="highlight">{{name}}</span> 👋
+        </div>
+
+        <p class="text">
+          We’re thrilled to welcome you to <strong>BookStore</strong>.
+          Your account has been successfully created and you're now part of our growing community of readers and book lovers.
+        </p>
+
+        <p class="text">
+          From bestselling novels to educational resources,
+          BookStore gives you a smooth and modern reading marketplace experience.
+        </p>
+
+        <!-- INFO -->
+        <div class="info-box">
+
+          <div class="info-row">
+            <span class="label">Account Status</span>
+            <span class="value">Active ✅</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Login Time</span>
+            <span class="value">{{loginTime}}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Member Since</span>
+            <span class="value">{{currentYear}}</span>
+          </div>
+
+        </div>
+
+        <!-- BUTTON -->
+        <div class="btn-wrapper">
+          <a href="http://localhost:3000/login" class="button">
+            Explore BookStore →
+          </a>
+        </div>
+
+        <!-- FEATURES -->
+        <div class="features">
+
+          <div class="feature">
+            <div class="feature-icon">🛒</div>
+            <h4>Easy Shopping</h4>
+            <p>
+              Browse and purchase books with a smooth checkout experience.
+            </p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">❤️</div>
+            <h4>Wishlist</h4>
+            <p>
+              Save your favorite books and buy them anytime later.
+            </p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">🚚</div>
+            <h4>Order Tracking</h4>
+            <p>
+              Track your orders and stay updated in real time.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+
+        <p>
+          Thank you for choosing BookStore.<br/>
+          We’re excited to be part of your reading journey.
+        </p>
+
+        <div class="socials">
+          <a href="#">Instagram</a>
+          <a href="#">Twitter</a>
+          <a href="#">Facebook</a>
+        </div>
+
+        <p style="margin-top:20px;">
+          © {{currentYear}} BookStore. All Rights Reserved.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>
