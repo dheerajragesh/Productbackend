@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "build": "run ",
     "dev": "node --watch index.js",
     "postman:test": "node scripts/run-postman.mjs",
     "postman:test:health": "node scripts/run-postman.mjs --health",

@@ -32,7 +32,6 @@ const handlebarOptions = {
 transport.use('compile', hbs(handlebarOptions))
 
 export const sendWelcomeEmail = async (to, subject, template, context) => {
-  console.log("hi")
   const mailOptions = {
     from: `"Book Store" <${fromEmail}>`,
     template,
