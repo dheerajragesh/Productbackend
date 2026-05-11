@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { User } from "../models/user.js";
 import HttpError from "../utils/httpError.js";
 import { sendWelcomeEmail } from "../config/mail/nodemailer.js";
-import emailTemplates from "../config/mail/emailTemplates.js";
+//import emailTemplates from "../config/mail/emailTemplates.js";
 
 // ================= REGISTER =================
 export const userRegister = async (req, res, next) => {
