@@ -2,44 +2,48 @@ import mongoose from "mongoose";
 
 const bookSchema = new mongoose.Schema(
   {
-    user_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
     title: {
       type: String,
       required: true,
       trim: true,
     },
+
     description: {
       type: String,
       required: true,
-      trim: true,
     },
-    excerpt: {
+
+    author: {
       type: String,
-      trim: true,
+      default: "Unknown",
     },
+
     price: {
       type: Number,
       required: true,
-      min: 0,
     },
-    page_count: {
-      type: Number,
+
+    image: {
+      type: String,
+      default: null,
     },
+
+    seller_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
     is_deleted: {
       type: Boolean,
       default: false,
     },
-        image: {
-      type: String,
-      default: null, // ✅ image path
-    },
-   
   },
-  { timestamps: true, bufferCommands: false }
+  {
+    timestamps: true,
+  }
 );
 
-export const Book = mongoose.model("Book", bookSchema);
+export const Book =
+  mongoose.models.Book ||
+  mongoose.model("Book", bookSchema);

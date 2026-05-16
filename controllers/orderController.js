@@ -1,145 +1,500 @@
+import mongoose from "mongoose";
 import { Order } from "../models/order.js";
-import HttpError from "../utils/HttpError.js";
+import { Cart } from "../models/cart.js";
+import { Book } from "../models/book.js";
+import HttpError from "../utils/httpError.js";
 
-// ================= CREATE ORDER =================
-export const createOrder = async (req, res, next) => {
+// ======================================
+// ✅ CREATE ORDER
+// ======================================
+export const createOrder = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { items, totalAmount, address } = req.body;
+    // ✅ get user cart
+    const cart = await Cart.findOne({
+      user: req.user.user_id,
+    }).populate("items.product");
 
-    if (!items || items.length === 0) {
-      return next(new HttpError("Order items required", 400));
+    // ✅ check empty cart
+    if (
+      !cart ||
+      cart.items.length === 0
+    ) {
+      return next(
+        new HttpError(
+          "Cart is empty",
+          400
+        )
+      );
     }
 
+    // ✅ build order items
+   const orderItems =
+  cart.items.map((item) => ({
+    product: item.product._id,
+    quantity: item.quantity,
+    price: item.product.price,
+    seller:
+      item.product.seller_id,
+  }));
+    // ✅ total
+    const totalPrice =
+      orderItems.reduce(
+        (acc, item) =>
+          acc +
+          item.price * item.quantity,
+        0
+      );
+
+    // ✅ create order
     const order = await Order.create({
       user: req.user.user_id,
-      items,
-      totalAmount,
-      address,
+      items: orderItems,
+      totalPrice,
+      orderStatus: "placed",
     });
 
-    res.status(201).json({
+    // ✅ clear cart
+    cart.items = [];
+    await cart.save();
+
+    // ✅ populate order
+    const populatedOrder =
+      await Order.findById(order._id)
+        .populate(
+          "user",
+          "firstName lastName email"
+        )
+        .populate(
+          "items.product"
+        );
+
+    return res.status(201).json({
       success: true,
-      message: "Order placed successfully",
-      data: order,
+      message:
+        "Order placed successfully",
+      data: populatedOrder,
     });
-  } catch (error) {
-    next(new HttpError(error.message, 500));
+  } catch (err) {
+    console.log(err);
+
+    return next(
+      new HttpError(
+        err.message,
+        500
+      )
+    );
   }
 };
 
-// ================= USER ORDERS =================
-export const getUserOrders = async (req, res, next) => {
+// ======================================
+// ✅ USER ORDERS
+// ======================================
+export const getUserOrders = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const orders = await Order.find({ user: req.user.user_id })
-      .populate("items.productId");
+    const orders = await Order.find({
+      user: req.user.user_id,
+    })
+      .populate(
+        "items.product"
+      )
+      .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: orders,
     });
-  } catch (error) {
-    next(new HttpError(error.message, 500));
+  } catch (err) {
+    console.log(err);
+
+    return next(
+      new HttpError(
+        err.message,
+        500
+      )
+    );
   }
 };
 
-// ================= SINGLE ORDER =================
-export const getSingleOrder = async (req, res, next) => {
+// ======================================
+// ✅ SINGLE ORDER
+// ======================================
+export const getSingleOrder = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const order = await Order.findById(req.params.id)
-      .populate("items.productId");
+    const { id } = req.params;
 
-    if (!order) {
-      return next(new HttpError("Order not found", 404));
+    // ✅ validate id
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        id
+      )
+    ) {
+      return next(
+        new HttpError(
+          "Invalid order ID",
+          400
+        )
+      );
     }
 
-    res.status(200).json({
+    const order = await Order.findById(
+      id
+    )
+      .populate(
+        "user",
+        "firstName lastName email"
+      )
+      .populate(
+        "items.product"
+      );
+
+    if (!order) {
+      return next(
+        new HttpError(
+          "Order not found",
+          404
+        )
+      );
+    }
+
+    // ✅ user can access own order
+    // ✅ seller can access related order
+    // ✅ admin can access all
+
+    const isOwner =
+      order.user._id.toString() ===
+      req.user.user_id;
+
+    const isAdmin =
+      req.user.role === "admin";
+
+    const isSeller =
+      order.items.some(
+        (item) =>
+          item.seller?.toString() ===
+          req.user.user_id
+      );
+
+    if (
+      !isOwner &&
+      !isAdmin &&
+      !isSeller
+    ) {
+      return next(
+        new HttpError(
+          "Not authorized",
+          403
+        )
+      );
+    }
+
+    return res.status(200).json({
       success: true,
       data: order,
     });
-  } catch (error) {
-    next(new HttpError(error.message, 500));
+  } catch (err) {
+    console.log(err);
+
+    return next(
+      new HttpError(
+        err.message,
+        500
+      )
+    );
   }
 };
 
-// ================= SELLER - ALL ORDERS =================
-export const getAllOrders = async (req, res, next) => {
+// ======================================
+// ✅ ADMIN ALL ORDERS
+// ======================================
+export const getAllOrders = async (
+  req,
+  res,
+  next
+) => {
   try {
-    if (!req.user || req.user.role !== "seller") {
-      return next(new HttpError("Not authorized", 403));
+    // ✅ admin only
+    if (
+      req.user.role !== "admin"
+    ) {
+      return next(
+        new HttpError(
+          "Admin only",
+          403
+        )
+      );
     }
 
     const orders = await Order.find()
-      .populate("items.productId")
-      .populate("user");
+      .populate(
+        "user",
+        "firstName lastName email"
+      )
+      .populate(
+        "items.product"
+      )
+      .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: orders,
     });
-  } catch (error) {
-    next(new HttpError(error.message, 500));
+  } catch (err) {
+    console.log(err);
+
+    return next(
+      new HttpError(
+        err.message,
+        500
+      )
+    );
   }
 };
 
-// ================= UPDATE ORDER STATUS (SELLER) =================
-export const updateOrderStatus = async (req, res, next) => {
+// ======================================
+// ✅ SELLER ORDERS
+// ======================================
+export const sellerOrders = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { status } = req.body;
-
-    if (!req.user || req.user.role !== "seller") {
-      return next(new HttpError("Not authorized", 403));
+    // ✅ seller/admin only
+    if (
+      req.user.role !== "seller" &&
+      req.user.role !== "admin"
+    ) {
+      return next(
+        new HttpError(
+          "Seller only",
+          403
+        )
+      );
     }
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
+    const orders = await Order.find({
+      "items.seller":
+        req.user.user_id,
+    })
+      .populate(
+        "user",
+        "firstName lastName email"
+      )
+      .populate(
+        "items.product"
+      )
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (err) {
+    console.log(err);
+
+    return next(
+      new HttpError(
+        err.message,
+        500
+      )
+    );
+  }
+};
+
+// ======================================
+// ✅ UPDATE ORDER STATUS
+// ======================================
+export const updateOrderStatus =
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+      const { id } = req.params;
+
+      const { orderStatus } =
+        req.body;
+
+      // ✅ validate id
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          id
+        )
+      ) {
+        return next(
+          new HttpError(
+            "Invalid order ID",
+            400
+          )
+        );
+      }
+
+      // ✅ validate role
+      if (
+        req.user.role !== "seller" &&
+        req.user.role !== "admin"
+      ) {
+        return next(
+          new HttpError(
+            "Not authorized",
+            403
+          )
+        );
+      }
+
+      const order =
+        await Order.findById(id);
+
+      if (!order) {
+        return next(
+          new HttpError(
+            "Order not found",
+            404
+          )
+        );
+      }
+
+      // ✅ seller can update only own product orders
+      if (
+        req.user.role !== "admin"
+      ) {
+        const hasSellerItem =
+          order.items.some(
+            (item) =>
+              item.seller?.toString() ===
+              req.user.user_id
+          );
+
+        if (!hasSellerItem) {
+          return next(
+            new HttpError(
+              "Not your order",
+              403
+            )
+          );
+        }
+      }
+
+      // ✅ update status
+      order.orderStatus =
+        orderStatus;
+
+      await order.save();
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Order status updated",
+        data: order,
+      });
+    } catch (err) {
+      console.log(err);
+
+      return next(
+        new HttpError(
+          err.message,
+          500
+        )
+      );
+    }
+  };
+
+// ======================================
+// ✅ CANCEL ORDER
+// ======================================
+export const cancelOrder = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ validate id
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        id
+      )
+    ) {
+      return next(
+        new HttpError(
+          "Invalid order ID",
+          400
+        )
+      );
+    }
+
+    const order = await Order.findById(
+      id
     );
 
     if (!order) {
-      return next(new HttpError("Order not found", 404));
+      return next(
+        new HttpError(
+          "Order not found",
+          404
+        )
+      );
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Order updated",
-      data: order,
-    });
-  } catch (error) {
-    next(new HttpError(error.message, 500));
-  }
-};
-
-// ================= CANCEL ORDER (USER ONLY) =================
-export const cancelOrder = async (req, res, next) => {
-  try {
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return next(new HttpError("Order not found", 404));
+    // ✅ only owner/admin
+    if (
+      order.user.toString() !==
+        req.user.user_id &&
+      req.user.role !== "admin"
+    ) {
+      return next(
+        new HttpError(
+          "Not authorized",
+          403
+        )
+      );
     }
 
-    if (!req.user) {
-      return next(new HttpError("Not authenticated", 401));
+    // ✅ cannot cancel delivered
+    if (
+      order.orderStatus ===
+      "delivered"
+    ) {
+      return next(
+        new HttpError(
+          "Delivered order cannot be cancelled",
+          400
+        )
+      );
     }
 
-    if (order.user.toString() !== req.user.user_id) {
-      return next(new HttpError("Not authorized", 403));
-    }
+    order.orderStatus =
+      "cancelled";
 
-    if (order.status === "delivered") {
-      return next(new HttpError("Cannot cancel delivered order", 400));
-    }
-
-    order.status = "cancelled";
     await order.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Order cancelled successfully",
-      data: order,
+      message:
+        "Order cancelled successfully",
     });
-  } catch (error) {
-    next(new HttpError(error.message, 500));
+  } catch (err) {
+    console.log(err);
+
+    return next(
+      new HttpError(
+        err.message,
+        500
+      )
+    );
   }
 };

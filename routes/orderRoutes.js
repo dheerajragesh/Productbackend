@@ -1,26 +1,61 @@
 import express from "express";
 import authCheck from "../middleware/authCheck.js";
+
 import {
   createOrder,
   getUserOrders,
   getSingleOrder,
   getAllOrders,
   updateOrderStatus,
-  cancelOrder
+  cancelOrder,
 } from "../controllers/orderController.js";
 
 const router = express.Router();
 
-// USER
-router.post("/place", authCheck, createOrder);
-router.get("/my-orders", authCheck, getUserOrders);
-router.get("/getorder/:id", authCheck, getSingleOrder);
+// ================= USER ROUTES =================
 
-// SELLER
-router.get("/all-orders", authCheck, getAllOrders);
-router.put("/updateorder/:id", authCheck, updateOrderStatus);
+// PLACE ORDER
+router.post(
+  "/place",
+  authCheck,
+  createOrder
+);
 
-// USER CANCEL
-router.delete("/cancelorder/:id", authCheck, cancelOrder);
+// MY ORDERS
+router.get(
+  "/my-orders",
+  authCheck,
+  getUserOrders
+);
+
+// SINGLE ORDER
+router.get(
+  "/getorder/:id",
+  authCheck,
+  getSingleOrder
+);
+
+// CANCEL ORDER
+router.delete(
+  "/cancelorder/:id",
+  authCheck,
+  cancelOrder
+);
+
+// ================= SELLER / ADMIN =================
+
+// ALL ORDERS
+router.get(
+  "/all-orders",
+  authCheck,
+  getAllOrders
+);
+
+// UPDATE ORDER STATUS
+router.put(
+  "/updateorder/:id",
+  authCheck,
+  updateOrderStatus
+);
 
 export default router;
