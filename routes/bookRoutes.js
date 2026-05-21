@@ -1,7 +1,7 @@
 import express from "express";
 import authCheck from "../middleware/authCheck.js";
 import upload from "../middleware/upload.js";
-import roleCheck from "../middleware/roleCheck.js";
+import roleCheck from "../middleware/rolecheck.js";
 
 import {
   addBook,

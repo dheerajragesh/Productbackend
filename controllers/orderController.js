@@ -32,14 +32,28 @@ export const createOrder = async (
     }
 
     // ✅ build order items
-   const orderItems =
-  cart.items.map((item) => ({
-    product: item.product._id,
-    quantity: item.quantity,
-    price: item.product.price,
-    seller:
-      item.product.seller_id,
-  }));
+    const orderItems = cart.items.map((item) => {
+      const sellerId =
+        item.product?.seller_id ||
+        item.product?.sellerId ||
+        item.product?.user_id;
+
+      if (!sellerId) {
+        return next(
+          new HttpError(
+            "Book seller id is missing for an item in your cart",
+            400
+          )
+        );
+      }
+
+      return {
+        product: item.product._id,
+        quantity: item.quantity,
+        price: item.product.price,
+        seller: sellerId,
+      };
+    });
     // ✅ total
     const totalPrice =
       orderItems.reduce(
@@ -173,18 +187,16 @@ export const getSingleOrder = async (
     // ✅ admin can access all
 
     const isOwner =
-      order.user._id.toString() ===
-      req.user.user_id;
+      order.user._id.toString() === String(req.user.user_id);
 
     const isAdmin =
       req.user.role === "admin";
 
-    const isSeller =
-      order.items.some(
-        (item) =>
-          item.seller?.toString() ===
-          req.user.user_id
-      );
+    const isSeller = order.items.some(
+      (item) =>
+        item.seller &&
+        item.seller.toString() === String(req.user.user_id)
+    );
 
     if (
       !isOwner &&
@@ -389,8 +401,23 @@ export const updateOrderStatus =
       }
 
       // ✅ update status
-      order.orderStatus =
-        orderStatus;
+      const validStatuses = [
+        "placed",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ];
+
+      if (!validStatuses.includes(orderStatus)) {
+        return next(
+          new HttpError(
+            "Invalid order status",
+            400
+          )
+        );
+      }
+
+      order.orderStatus = orderStatus;
 
       await order.save();
 
@@ -452,8 +479,7 @@ export const cancelOrder = async (
 
     // ✅ only owner/admin
     if (
-      order.user.toString() !==
-        req.user.user_id &&
+      order.user.toString() !== String(req.user.user_id) &&
       req.user.role !== "admin"
     ) {
       return next(

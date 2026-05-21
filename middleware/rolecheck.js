@@ -1,4 +1,4 @@
-import HttpError from "../utils/HttpError.js";
+import HttpError from "../utils/httpError.js";
 
 const roleCheck = (...roles) => {
   return (req, res, next) => {
