@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
 const orderItemSchema =
   new mongoose.Schema({
@@ -54,6 +54,16 @@ const orderSchema =
           "cancelled",
         ],
         default: "placed",
+
+      address: {
+        type: String,
+        default: "",
+      },
+
+      paymentMethod: {
+        type: String,
+        default: "COD",
+      },
       },
     },
     {
@@ -61,6 +71,13 @@ const orderSchema =
     }
   );
 
+orderSchema.virtual("totalAmount").get(function () {
+  return this.totalPrice;
+});
+
+orderSchema.virtual("status").get(function () {
+  return this.orderStatus;
+});
 export const Order =
   mongoose.models.Order ||
   mongoose.model(

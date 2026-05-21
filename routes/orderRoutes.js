@@ -10,6 +10,14 @@ import {
   cancelOrder,
 } from "../controllers/orderController.js";
 
+import { validationMiddleware } from "../utils/validateRequestMiddleware.js";
+import {
+  placeOrderValidation,
+  getSingleOrderValidation,
+  cancelOrderValidation,
+  updateOrderStatusValidation,
+} from "../validations/orderValidations.js";
+
 const router = express.Router();
 
 // ================= USER ROUTES =================
@@ -18,6 +26,8 @@ const router = express.Router();
 router.post(
   "/place",
   authCheck,
+  placeOrderValidation,
+  validationMiddleware,
   createOrder
 );
 
@@ -32,6 +42,8 @@ router.get(
 router.get(
   "/getorder/:id",
   authCheck,
+  getSingleOrderValidation,
+  validationMiddleware,
   getSingleOrder
 );
 
@@ -39,6 +51,8 @@ router.get(
 router.delete(
   "/cancelorder/:id",
   authCheck,
+  cancelOrderValidation,
+  validationMiddleware,
   cancelOrder
 );
 
@@ -55,6 +69,8 @@ router.get(
 router.put(
   "/updateorder/:id",
   authCheck,
+  updateOrderStatusValidation,
+  validationMiddleware,
   updateOrderStatus
 );
 

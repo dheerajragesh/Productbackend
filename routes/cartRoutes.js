@@ -4,15 +4,56 @@ import {
   getCart,
   updateCart,
   removeFromCart,
-  clearCartById
+  clearCartById,
 } from "../controllers/cartController.js";
 import roleCheck from "../middleware/rolecheck.js";
 import authCheck from "../middleware/authCheck.js";
+
+import { validationMiddleware } from "../utils/validateRequestMiddleware.js";
+import {
+  addToCartValidation,
+  updateCartValidation,
+  removeFromCartValidation,
+  cartCartIdParam,
+} from "../validations/cartValidations.js";
+
 const router = express.Router();
 
-router.post("/add", authCheck, roleCheck("user"), addToCart);
+router.post(
+  "/add",
+  authCheck,
+  roleCheck("user"),
+  addToCartValidation,
+  validationMiddleware,
+  addToCart
+);
 router.get("/get", authCheck, roleCheck("user"), getCart);
-router.put("/update/:bookId", authCheck, roleCheck("user"), updateCart);
-router.delete("/remove/:bookId", authCheck, roleCheck("user"), removeFromCart);
-router.delete("/clear/:cartId", authCheck, roleCheck("user"), clearCartById);
+
+router.put(
+  "/update/:bookId",
+  authCheck,
+  roleCheck("user"),
+  updateCartValidation,
+  validationMiddleware,
+  updateCart
+);
+
+router.delete(
+  "/remove/:bookId",
+  authCheck,
+  roleCheck("user"),
+  removeFromCartValidation,
+  validationMiddleware,
+  removeFromCart
+);
+
+router.delete(
+  "/clear/:cartId",
+  authCheck,
+  roleCheck("user"),
+  cartCartIdParam,
+  validationMiddleware,
+  clearCartById
+);
+
 export default router;

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 import { Order } from "../models/order.js";
 import { Cart } from "../models/cart.js";
 import { Book } from "../models/book.js";
@@ -13,32 +13,102 @@ export const createOrder = async (
   next
 ) => {
   try {
-    // ✅ get user cart
-    const cart = await Cart.findOne({
-      user: req.user.user_id,
-    }).populate("items.product");
+    const requestedItems = Array.isArray(req.body?.items)
+      ? req.body.items
+      : [];
 
-    // ✅ check empty cart
-    if (
-      !cart ||
-      cart.items.length === 0
-    ) {
-      return next(
-        new HttpError(
-          "Cart is empty",
-          400
-        )
-      );
+    let cart = null;
+    let sourceItems = [];
+
+    // ======================================
+    // ✅ USE DIRECT ITEMS OR CART ITEMS
+    // ======================================
+    if (requestedItems.length > 0) {
+      sourceItems = requestedItems;
+    } else {
+      cart = await Cart.findOne({
+        user: req.user.user_id,
+      }).populate("items.product");
+
+      // ✅ check empty cart
+      if (!cart || cart.items.length === 0) {
+        return next(
+          new HttpError(
+            "Cart is empty",
+            400
+          )
+        );
+      }
+
+      sourceItems = cart.items.map((item) => ({
+        productId:
+          item.product?._id || item.product,
+        quantity: item.quantity,
+        _product: item.product,
+      }));
     }
 
-    // ✅ build order items
-    const orderItems = cart.items.map((item) => {
+    // ======================================
+    // ✅ BUILD ORDER ITEMS
+    // ======================================
+    const orderItems = [];
+
+    for (const item of sourceItems) {
+      const quantity = Number(item.quantity || 1);
+
+      const productId = String(
+        item.productId ||
+          item.product ||
+          ""
+      ).trim();
+
+      // ✅ validate object id
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          productId
+        )
+      ) {
+        return next(
+          new HttpError(
+            "Invalid book ID",
+            400
+          )
+        );
+      }
+
+      // ✅ fetch product
+      const product =
+        item._product ||
+        (await Book.findById(productId));
+
+      if (!product || product.is_deleted) {
+        return next(
+          new HttpError(
+            "Book not found",
+            404
+          )
+        );
+      }
+
+      // ======================================
+      // ✅ GET SELLER ID
+      // ======================================
       const sellerId =
-        item.product?.seller_id ||
-        item.product?.sellerId ||
-        item.product?.user_id;
+        product.seller?._id ||
+        product.seller ||
+        product.seller_id ||
+        product.sellerId ||
+        product.user?._id ||
+        product.user ||
+        product.user_id ||
+        product.createdBy;
 
       if (!sellerId) {
+        console.log(
+          "❌ PRODUCT WITHOUT SELLER:",
+          product
+        );
+
         return next(
           new HttpError(
             "Book seller id is missing for an item in your cart",
@@ -47,43 +117,76 @@ export const createOrder = async (
         );
       }
 
-      return {
-        product: item.product._id,
-        quantity: item.quantity,
-        price: item.product.price,
-        seller: sellerId,
-      };
-    });
-    // ✅ total
-    const totalPrice =
-      orderItems.reduce(
-        (acc, item) =>
-          acc +
-          item.price * item.quantity,
-        0
-      );
+      // ======================================
+      // ✅ VALIDATE PRICE
+      // ======================================
+      const price = Number(product.price);
 
-    // ✅ create order
+      if (Number.isNaN(price)) {
+        return next(
+          new HttpError(
+            "Book price is missing for an item in your cart",
+            400
+          )
+        );
+      }
+
+      // ======================================
+      // ✅ PUSH ORDER ITEM
+      // ======================================
+      orderItems.push({
+        product: product._id,
+        quantity,
+        price,
+        seller: sellerId,
+      });
+    }
+
+    // ======================================
+    // ✅ CALCULATE TOTAL
+    // ======================================
+    const totalPrice = orderItems.reduce(
+      (acc, item) =>
+        acc + item.price * item.quantity,
+      0
+    );
+
+    // ======================================
+    // ✅ CREATE ORDER
+    // ======================================
     const order = await Order.create({
       user: req.user.user_id,
       items: orderItems,
       totalPrice,
+      address: (
+        req.body?.address || ""
+      ).trim(),
+      paymentMethod:
+        req.body?.paymentMethod || "COD",
       orderStatus: "placed",
     });
 
-    // ✅ clear cart
-    cart.items = [];
-    await cart.save();
+    // ======================================
+    // ✅ CLEAR CART
+    // ======================================
+    if (cart) {
+      cart.items = [];
+      await cart.save();
+    }
 
-    // ✅ populate order
+    // ======================================
+    // ✅ POPULATE ORDER
+    // ======================================
     const populatedOrder =
       await Order.findById(order._id)
         .populate(
           "user",
           "firstName lastName email"
         )
+        .populate("items.product")
         .populate(
-          "items.product"
+          "items.seller",
+          "firstName lastName email"
         );
 
     return res.status(201).json({
@@ -93,11 +196,11 @@ export const createOrder = async (
       data: populatedOrder,
     });
   } catch (err) {
-    console.log(err);
+    console.log("ERROR 👉", err);
 
     return next(
       new HttpError(
-        err.message,
+        err.message || "Server error",
         500
       )
     );
@@ -116,8 +219,10 @@ export const getUserOrders = async (
     const orders = await Order.find({
       user: req.user.user_id,
     })
+      .populate("items.product")
       .populate(
-        "items.product"
+        "items.seller",
+        "firstName lastName email"
       )
       .sort({ createdAt: -1 });
 
@@ -148,7 +253,7 @@ export const getSingleOrder = async (
   try {
     const { id } = req.params;
 
-    // ✅ validate id
+    // ✅ validate order id
     if (
       !mongoose.Types.ObjectId.isValid(
         id
@@ -162,15 +267,15 @@ export const getSingleOrder = async (
       );
     }
 
-    const order = await Order.findById(
-      id
-    )
+    const order = await Order.findById(id)
       .populate(
         "user",
         "firstName lastName email"
       )
+      .populate("items.product")
       .populate(
-        "items.product"
+        "items.seller",
+        "firstName lastName email"
       );
 
     if (!order) {
@@ -182,12 +287,10 @@ export const getSingleOrder = async (
       );
     }
 
-    // ✅ user can access own order
-    // ✅ seller can access related order
-    // ✅ admin can access all
-
+    // ✅ authorization
     const isOwner =
-      order.user._id.toString() === String(req.user.user_id);
+      order.user._id.toString() ===
+      String(req.user.user_id);
 
     const isAdmin =
       req.user.role === "admin";
@@ -195,7 +298,8 @@ export const getSingleOrder = async (
     const isSeller = order.items.some(
       (item) =>
         item.seller &&
-        item.seller.toString() === String(req.user.user_id)
+        item.seller._id.toString() ===
+          String(req.user.user_id)
     );
 
     if (
@@ -253,8 +357,10 @@ export const getAllOrders = async (
         "user",
         "firstName lastName email"
       )
+      .populate("items.product")
       .populate(
-        "items.product"
+        "items.seller",
+        "firstName lastName email"
       )
       .sort({ createdAt: -1 });
 
@@ -304,8 +410,10 @@ export const sellerOrders = async (
         "user",
         "firstName lastName email"
       )
+      .populate("items.product")
       .populate(
-        "items.product"
+        "items.seller",
+        "firstName lastName email"
       )
       .sort({ createdAt: -1 });
 
@@ -336,7 +444,6 @@ export const updateOrderStatus =
   ) => {
     try {
       const { id } = req.params;
-
       const { orderStatus } =
         req.body;
 
@@ -354,7 +461,7 @@ export const updateOrderStatus =
         );
       }
 
-      // ✅ validate role
+      // ✅ seller/admin only
       if (
         req.user.role !== "seller" &&
         req.user.role !== "admin"
@@ -379,7 +486,7 @@ export const updateOrderStatus =
         );
       }
 
-      // ✅ seller can update only own product orders
+      // ✅ seller can only update own orders
       if (
         req.user.role !== "admin"
       ) {
@@ -400,7 +507,7 @@ export const updateOrderStatus =
         }
       }
 
-      // ✅ update status
+      // ✅ valid statuses
       const validStatuses = [
         "placed",
         "shipped",
@@ -408,7 +515,11 @@ export const updateOrderStatus =
         "cancelled",
       ];
 
-      if (!validStatuses.includes(orderStatus)) {
+      if (
+        !validStatuses.includes(
+          orderStatus
+        )
+      ) {
         return next(
           new HttpError(
             "Invalid order status",
@@ -417,7 +528,8 @@ export const updateOrderStatus =
         );
       }
 
-      order.orderStatus = orderStatus;
+      order.orderStatus =
+        orderStatus;
 
       await order.save();
 
@@ -450,7 +562,7 @@ export const cancelOrder = async (
   try {
     const { id } = req.params;
 
-    // ✅ validate id
+    // ✅ validate order id
     if (
       !mongoose.Types.ObjectId.isValid(
         id
@@ -464,6 +576,7 @@ export const cancelOrder = async (
       );
     }
 
+    // ✅ find order
     const order = await Order.findById(
       id
     );
@@ -477,9 +590,10 @@ export const cancelOrder = async (
       );
     }
 
-    // ✅ only owner/admin
+    // ✅ only owner or admin
     if (
-      order.user.toString() !== String(req.user.user_id) &&
+      order.user.toString() !==
+        String(req.user.user_id) &&
       req.user.role !== "admin"
     ) {
       return next(
@@ -490,7 +604,7 @@ export const cancelOrder = async (
       );
     }
 
-    // ✅ cannot cancel delivered
+    // ✅ cannot cancel delivered order
     if (
       order.orderStatus ===
       "delivered"
@@ -503,6 +617,7 @@ export const cancelOrder = async (
       );
     }
 
+    // ✅ update status
     order.orderStatus =
       "cancelled";
 
@@ -512,13 +627,14 @@ export const cancelOrder = async (
       success: true,
       message:
         "Order cancelled successfully",
+      data: order,
     });
   } catch (err) {
     console.log(err);
 
     return next(
       new HttpError(
-        err.message,
+        err.message || "Server error",
         500
       )
     );
