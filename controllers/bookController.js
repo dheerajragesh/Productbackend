@@ -1,5 +1,5 @@
 import HttpError from "../utils/httpError.js";
-import { Book } from "../models/book.js";
+import { Book } from "../models/Book.js";
 import mongoose from "mongoose";
 import fs from "fs";
 
