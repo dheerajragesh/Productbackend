@@ -1,7 +1,7 @@
 ﻿import mongoose from "mongoose";
 import { Order } from "../models/order.js";
 import { Cart } from "../models/cart.js";
-import { Book } from "../models/book.js";
+import { Book } from "../models/Book.js";
 import HttpError from "../utils/httpError.js";
 
 // ======================================

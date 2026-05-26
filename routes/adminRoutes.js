@@ -18,4 +18,5 @@ adminroutes.delete("/user/:id", authCheck, deleteUser);
 // DELETE BOOK
 adminroutes.delete("/book/:id", authCheck, deleteBookByAdmin);
 
+
 export default adminroutes;

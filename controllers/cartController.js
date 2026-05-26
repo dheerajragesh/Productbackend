@@ -1,5 +1,5 @@
 import { Cart } from "../models/cart.js";
-import { Book } from "../models/book.js";
+import { Book } from "../models/Book.js";
 import HttpError from "../utils/httpError.js";
 import mongoose from "mongoose";
 
